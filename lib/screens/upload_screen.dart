@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:s11_20260410_archivos/services/location_service.dart';
 import '../services/upload_service.dart';
 
 class UploadScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class _UploadScreenState extends State<UploadScreen> {
   // Instancias del selector de imágenes y del servicio de subida
   final ImagePicker _picker = ImagePicker();
   final UploadService _uploadService = UploadService();
+  final LocationService _locationService = LocationService();
 
   // Variables de estado
   XFile? _selectedImage;
@@ -36,7 +38,7 @@ class _UploadScreenState extends State<UploadScreen> {
           _serverResponse = null; // Limpiar respuesta previa
           _uploadedImageUrl = null; // Limpiar URL previa al cambiar imagen
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Imagen seleccionada con éxito'),
@@ -59,6 +61,8 @@ class _UploadScreenState extends State<UploadScreen> {
   Future<void> _uploadImage() async {
     if (_selectedImage == null) return;
 
+    await _locationService.obtenerUbicacion();
+
     setState(() {
       _isUploading = true;
       _serverResponse = null;
@@ -71,7 +75,10 @@ class _UploadScreenState extends State<UploadScreen> {
       _serverResponse = response;
       if (response != null) {
         // Obtenemos la URL devuelta por el servidor (o simulamos una de Lorem Picsum si no existe la llave)
-        _uploadedImageUrl = response['url'] ?? response['location'] ?? 'https://picsum.photos/id/237/800/600';
+        _uploadedImageUrl =
+            response['url'] ??
+            response['location'] ??
+            'https://picsum.photos/id/237/800/600';
       }
     });
 
@@ -108,10 +115,7 @@ class _UploadScreenState extends State<UploadScreen> {
             // 1. Cabecera explicativa para clase
             const Text(
               'Ejemplo Clase: Subir Archivo (Imagen)',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -144,18 +148,27 @@ class _UploadScreenState extends State<UploadScreen> {
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: double.infinity,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return const Center(child: CircularProgressIndicator());
-                              },
+                              loadingBuilder:
+                                  (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  },
                               errorBuilder: (context, error, stackTrace) {
                                 return const Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.error_outline, color: Colors.red, size: 48),
+                                      Icon(
+                                        Icons.error_outline,
+                                        color: Colors.red,
+                                        size: 48,
+                                      ),
                                       SizedBox(height: 8),
-                                      Text('Error al cargar la imagen desde la URL'),
+                                      Text(
+                                        'Error al cargar la imagen desde la URL',
+                                      ),
                                     ],
                                   ),
                                 );
@@ -166,7 +179,10 @@ class _UploadScreenState extends State<UploadScreen> {
                             top: 8,
                             right: 8,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.green.withOpacity(0.85),
                                 borderRadius: BorderRadius.circular(20),
@@ -174,11 +190,19 @@ class _UploadScreenState extends State<UploadScreen> {
                               child: const Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.cloud_done, color: Colors.white, size: 16),
+                                  Icon(
+                                    Icons.cloud_done,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
                                   SizedBox(width: 4),
                                   Text(
                                     'Desde URL (Servidor)',
-                                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -187,56 +211,67 @@ class _UploadScreenState extends State<UploadScreen> {
                         ],
                       )
                     : _selectedImage != null
-                        ? Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.file(
-                                  File(_selectedImage!.path),
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.85),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.insert_drive_file, color: Colors.white, size: 16),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Vista Local',
-                                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.image_outlined,
-                                size: 80,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Ninguna imagen seleccionada',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ],
+                    ? Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(_selectedImage!.path),
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
                           ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.85),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.insert_drive_file,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Vista Local',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_outlined,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Ninguna imagen seleccionada',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ],
+                      ),
               ),
             ),
             const SizedBox(height: 20),
@@ -316,14 +351,14 @@ class _UploadScreenState extends State<UploadScreen> {
                   ),
                 ),
               ),
-            
+
             // 5. Mostrar la respuesta de httpbin.org si existe
             if (_serverResponse != null) ...[
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 12),
               const Text(
-                'Respuesta del Servidor (Echo):',
+                'Respuesta del Servidor (MinIO):',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -340,11 +375,14 @@ class _UploadScreenState extends State<UploadScreen> {
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Text(
-                    const JsonEncoder.withIndent('  ').convert({
+                    /*const JsonEncoder.withIndent('  ').convert({
                       'headers': _serverResponse!['headers'],
-                      'files': _serverResponse!['files'], // Aquí se ve el archivo recibido
-                      'form': _serverResponse!['form'],   // Aquí se ven los parámetros extras
-                    }),
+                      'files':
+                          _serverResponse!['files'], // Aquí se ve el archivo recibido
+                      'form':
+                          _serverResponse!['form'], // Aquí se ven los parámetros extras
+                    })*/
+                    const JsonEncoder.withIndent(' ').convert(_serverResponse),
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 12,
